@@ -1,8 +1,11 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.Core;
 using Silk.NET.Maths;
+using Silk.NET.SDL;
 using Silk.NET.Vulkan;
+using SemaphoreHandle = Silk.NET.Vulkan.SemaphoreHandle;
 
 var app = new HelloTriangleApplication();
 app.Run();
@@ -44,7 +47,9 @@ unsafe class HelloTriangleApplication
         (string)Vk.KhrSwapchainExtensionName,
     };
 
-    private IWindow? window;
+    private WindowHandle window;
+
+    private ISdl sdl = Sdl.Create();
     private IVk vk = Vk.Create();
 
     private InstanceHandle instance;
@@ -88,20 +93,15 @@ unsafe class HelloTriangleApplication
 
     private void InitWindow()
     {
-        //Create a window.
-        var options = WindowOptions.DefaultVulkan with
-        {
-            Size = new Vector2D<int>(WIDTH, HEIGHT),
-            Title = "Vulkan",
-        };
+        var sdl = Sdl.Instance;
 
-        window = Window.Create(options);
-        window.Initialize();
-
-        if (window.VkSurface is null)
+        if (!sdl.Init(Sdl.InitVideo))
         {
-            throw new Exception("Windowing platform doesn't support Vulkan.");
+            var error = sdl.GetError().ReadToString();
+            throw new Exception($"SDL failed to initialize: {error}");
         }
+
+        window = sdl.CreateWindow("Hello world from SDL 3 and Silk 3", 800, 600, Sdl.WindowResizable);
     }
 
     private void InitVulkan()
@@ -123,8 +123,17 @@ unsafe class HelloTriangleApplication
 
     private void MainLoop()
     {
-        window!.Render += DrawFrame;
-        window!.Run();
+        var stopwatch = new Stopwatch();
+        var shouldRun = true;
+        while (shouldRun)
+        {
+            var e = default(Event);
+            sdl.PollEvent(e.AsRef());
+
+            DrawFrame(stopwatch.Elapsed.TotalSeconds);
+            stopwatch.Restart();
+        }
+
         vk.DeviceWaitIdle(device);
     }
 
@@ -165,7 +174,8 @@ unsafe class HelloTriangleApplication
         vk.DestroySurfaceKHR(instance, surface, null);
         vk.DestroyInstance(instance, null);
 
-        window?.Dispose();
+        sdl.DestroyWindow(window);
+        sdl.Quit();
     }
 
     private void CreateInstance()
@@ -252,7 +262,10 @@ unsafe class HelloTriangleApplication
 
     private void CreateSurface()
     {
-        surface = window!.VkSurface!.Create<AllocationCallbacks>(instance.ToHandle(), null).ToSurface();
+        ulong surfaceHandle = default;
+        sdl.VulkanLoadLibrary(default);
+        sdl.VulkanCreateSurface(window, instance.AsRef(), default, surfaceHandle.AsRef());
+        surface = Unsafe.BitCast<ulong, SurfaceKHRHandle>(surfaceHandle);
     }
 
     private void PickPhysicalDevice()
@@ -917,7 +930,9 @@ unsafe class HelloTriangleApplication
         }
         else
         {
-            var framebufferSize = window!.FramebufferSize;
+            int w, h;
+            sdl.GetWindowSizeInPixels(window, &w, &h);
+            var framebufferSize = new Vector2D<int>(w, h);
 
             Extent2D actualExtent = new()
             {
@@ -1049,8 +1064,9 @@ unsafe class HelloTriangleApplication
 
     private string[] GetRequiredExtensions()
     {
-        var glfwExtensions = window!.VkSurface!.GetRequiredExtensions(out var glfwExtensionCount);
-        var extensions = SilkMarshal.PtrToStringArray((nint)glfwExtensions, (int)glfwExtensionCount);
+        uint extensionsCount = default;
+        var pExtensions = sdl.VulkanGetInstanceExtensions(&extensionsCount);
+        var extensions = SilkMarshal.NativeToStringArray(new ReadOnlySpan<IntPtr>(pExtensions, (int)extensionsCount), 1);
 
         if (EnableValidationLayers)
         {
