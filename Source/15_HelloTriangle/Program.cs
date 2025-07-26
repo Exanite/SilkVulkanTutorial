@@ -135,7 +135,7 @@ unsafe class HelloTriangleApplication
             throw new Exception($"SDL failed to initialize: {error}");
         }
 
-        window = sdl.CreateWindow("Hello world from SDL 3 and Silk 3", 800, 600, Sdl.WindowResizable | Sdl.WindowVulkan);
+        window = sdl.CreateWindow("Hello world from Vulkan, SDL 3, and Silk 3", 800, 600, Sdl.WindowResizable | Sdl.WindowVulkan);
     }
 
     private void InitVulkan()
