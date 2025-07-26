@@ -135,7 +135,7 @@ unsafe class HelloTriangleApplication
             throw new Exception($"SDL failed to initialize: {error}");
         }
 
-        window = sdl.CreateWindow("Hello world from SDL 3 and Silk 3", 800, 600, Sdl.WindowResizable);
+        window = sdl.CreateWindow("Hello world from SDL 3 and Silk 3", 800, 600, Sdl.WindowResizable | Sdl.WindowVulkan);
     }
 
     private void InitVulkan()
@@ -241,36 +241,36 @@ unsafe class HelloTriangleApplication
         };
 
         var extensions = GetRequiredExtensions();
-        createInfo.EnabledExtensionCount = (uint)extensions.Length;
-        createInfo.PpEnabledExtensionNames = (sbyte**)SilkMarshal.StringArrayToNative(extensions); ;
-
-        if (EnableValidationLayers)
+        fixed (byte* ppExtensions = SilkMarshal.StringArrayToNative(extensions).AsRef())
         {
-            createInfo.EnabledLayerCount = (uint)validationLayers.Length;
-            createInfo.PpEnabledLayerNames = (sbyte**)SilkMarshal.StringArrayToNative(validationLayers);
+            createInfo.EnabledExtensionCount = (uint)extensions.Length;
+            createInfo.PpEnabledExtensionNames = (sbyte**)ppExtensions;
 
-            DebugUtilsMessengerCreateInfoEXT debugCreateInfo = new();
-            PopulateDebugMessengerCreateInfo(ref debugCreateInfo);
-            createInfo.PNext = &debugCreateInfo;
-        }
-        else
-        {
-            createInfo.EnabledLayerCount = 0;
-            createInfo.PNext = null;
-        }
+            fixed (byte* ppEnabledLayers = SilkMarshal.StringArrayToNative(validationLayers).AsRef())
+            {
+                if (EnableValidationLayers)
+                {
+                    createInfo.EnabledLayerCount = (uint)validationLayers.Length;
+                    createInfo.PpEnabledLayerNames = (sbyte**)ppEnabledLayers;
 
-        if (vk.CreateInstance(createInfo.AsRef(), default, instance.AsRef()) != Result.Success)
-        {
-            throw new Exception("failed to create instance!");
-        }
+                    DebugUtilsMessengerCreateInfoEXT debugCreateInfo = new();
+                    PopulateDebugMessengerCreateInfo(ref debugCreateInfo);
+                    createInfo.PNext = &debugCreateInfo;
+                }
+                else
+                {
+                    createInfo.EnabledLayerCount = 0;
+                    createInfo.PNext = null;
+                }
 
-        Marshal.FreeHGlobal((IntPtr)appInfo.PApplicationName);
-        Marshal.FreeHGlobal((IntPtr)appInfo.PEngineName);
-        SilkMarshal.Free(createInfo.PpEnabledExtensionNames);
+                if (vk.CreateInstance(createInfo.AsRef(), default, instance.AsRef()) != Result.Success)
+                {
+                    throw new Exception("failed to create instance!");
+                }
 
-        if (EnableValidationLayers)
-        {
-            SilkMarshal.Free(createInfo.PpEnabledLayerNames);
+                Marshal.FreeHGlobal((IntPtr)appInfo.PApplicationName);
+                Marshal.FreeHGlobal((IntPtr)appInfo.PEngineName);
+            }
         }
     }
 
@@ -303,7 +303,7 @@ unsafe class HelloTriangleApplication
     {
         ulong surfaceHandle = default;
         sdl.VulkanLoadLibrary(default);
-        sdl.VulkanCreateSurface(window, instance.AsRef(), default, surfaceHandle.AsRef());
+        sdl.VulkanCreateSurface(window, instance.Handle, default, surfaceHandle.AsRef());
         surface = Unsafe.BitCast<ulong, SurfaceKHRHandle>(surfaceHandle);
     }
 
@@ -355,42 +355,41 @@ unsafe class HelloTriangleApplication
 
         PhysicalDeviceFeatures deviceFeatures = new();
 
-        DeviceCreateInfo createInfo = new()
+        fixed (byte* ppExtensions = SilkMarshal.StringArrayToNative(deviceExtensions).AsRef())
         {
-            SType = StructureType.DeviceCreateInfo,
-            QueueCreateInfoCount = (uint)uniqueQueueFamilies.Length,
-            PQueueCreateInfos = queueCreateInfos,
+            fixed (byte* ppEnabledLayers = SilkMarshal.StringArrayToNative(validationLayers).AsRef())
+            {
+                DeviceCreateInfo createInfo = new()
+                {
+                    SType = StructureType.DeviceCreateInfo,
+                    QueueCreateInfoCount = (uint)uniqueQueueFamilies.Length,
+                    PQueueCreateInfos = queueCreateInfos,
 
-            PEnabledFeatures = &deviceFeatures,
+                    PEnabledFeatures = &deviceFeatures,
 
-            EnabledExtensionCount = (uint)deviceExtensions.Length,
-            PpEnabledExtensionNames = (sbyte**)SilkMarshal.StringArrayToNative(deviceExtensions)
-        };
+                    EnabledExtensionCount = (uint)deviceExtensions.Length,
+                    PpEnabledExtensionNames = (sbyte**)ppExtensions
+                };
 
-        if (EnableValidationLayers)
-        {
-            createInfo.EnabledLayerCount = (uint)validationLayers.Length;
-            createInfo.PpEnabledLayerNames = (sbyte**)SilkMarshal.StringArrayToNative(validationLayers);
+                if (EnableValidationLayers)
+                {
+                    createInfo.EnabledLayerCount = (uint)validationLayers.Length;
+                    createInfo.PpEnabledLayerNames = (sbyte**)ppEnabledLayers;
+                }
+                else
+                {
+                    createInfo.EnabledLayerCount = 0;
+                }
+
+                if (vk.CreateDevice(physicalDevice, createInfo.AsRef(), default, device.AsRef()) != Result.Success)
+                {
+                    throw new Exception("failed to create logical device!");
+                }
+
+                vk.GetDeviceQueue(device, indices.GraphicsFamily!.Value, 0, graphicsQueue.AsRef());
+                vk.GetDeviceQueue(device, indices.PresentFamily!.Value, 0, presentQueue.AsRef());
+            }
         }
-        else
-        {
-            createInfo.EnabledLayerCount = 0;
-        }
-
-        if (vk.CreateDevice(physicalDevice, createInfo.AsRef(), default, device.AsRef()) != Result.Success)
-        {
-            throw new Exception("failed to create logical device!");
-        }
-
-        vk.GetDeviceQueue(device, indices.GraphicsFamily!.Value, 0, graphicsQueue.AsRef());
-        vk.GetDeviceQueue(device, indices.PresentFamily!.Value, 0, presentQueue.AsRef());
-
-        if (EnableValidationLayers)
-        {
-            SilkMarshal.Free(createInfo.PpEnabledLayerNames);
-        }
-
-        SilkMarshal.Free(createInfo.PpEnabledExtensionNames);
     }
 
     private void CreateSwapChain()
