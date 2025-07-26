@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.Core;
+using Silk.NET.Core.Loader;
 using Silk.NET.Maths;
 using Silk.NET.SDL;
 using Silk.NET.Vulkan;
@@ -28,6 +29,29 @@ struct SwapChainSupportDetails
     public PresentModeKHR[] PresentModes;
 }
 
+class VulkanLoader : INativeContext
+{
+    public Vk Vk { get; set; } = null!;
+    private IVk Ivk => Vk;
+
+    public unsafe void* LoadFunction(string functionName, string libraryNameHint)
+    {
+        void* ptr = Vk.DllImport.GetDeviceProcAddr(Vk.CurrentDevice.GetValueOrDefault(), functionName);
+        if (ptr != null)
+        {
+            return ptr;
+        }
+
+        ptr = Vk.DllImport.GetInstanceProcAddr(Vk.CurrentInstance.GetValueOrDefault(), functionName);
+        return ptr;
+    }
+
+    public void Dispose()
+    {
+
+    }
+}
+
 unsafe class HelloTriangleApplication
 {
     const int WIDTH = 800;
@@ -50,7 +74,7 @@ unsafe class HelloTriangleApplication
     private WindowHandle window;
 
     private ISdl sdl = Sdl.Create();
-    private IVk vk = Vk.Create();
+    private IVk vk = Create();
 
     private InstanceHandle instance;
 
@@ -82,6 +106,16 @@ unsafe class HelloTriangleApplication
     private FenceHandle[]? inFlightFences;
     private FenceHandle[]? imagesInFlight;
     private int currentFrame = 0;
+
+    public static IVk Create()
+    {
+        var context = new VulkanLoader();
+        var vk = new Vk(context);
+
+        context.Vk = vk;
+
+        return vk;
+    }
 
     public void Run()
     {
