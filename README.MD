@@ -1,4 +1,9 @@
-# Silk .NET Vulkan Tutorial
+This repo is used to test if the Silk 3 Vulkan bindings work or not.
+Only Example 15 (Hello Triangle) has been converted to work with Silk 3.
+
+Note: The code does not work yet.
+
+# Original README - Silk .NET Vulkan Tutorial
 
 C# [Silk.NET](https://github.com/dotnet/Silk.NET) port of the [great tutorial by Alexander Overvoorde](https://vulkan-tutorial.com/). The original code can be found [here](https://github.com/Overv/VulkanTutorial).
 
