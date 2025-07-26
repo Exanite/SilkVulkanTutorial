@@ -130,6 +130,11 @@ unsafe class HelloTriangleApplication
             var e = default(Event);
             sdl.PollEvent(e.AsRef());
 
+            if (e.Type == (uint)EventType.Quit)
+            {
+                shouldRun = false;
+            }
+
             DrawFrame(stopwatch.Elapsed.TotalSeconds);
             stopwatch.Restart();
         }
