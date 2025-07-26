@@ -434,8 +434,8 @@ unsafe class HelloTriangleApplication
 
     private void CreateGraphicsPipeline()
     {
-        var vertShaderCode = File.ReadAllBytes("shaders/vert.spv");
-        var fragShaderCode = File.ReadAllBytes("shaders/frag.spv");
+        var vertShaderCode = File.ReadAllBytes("Shaders/vert.spv");
+        var fragShaderCode = File.ReadAllBytes("Shaders/frag.spv");
 
         var vertShaderModule = CreateShaderModule(vertShaderCode);
         var fragShaderModule = CreateShaderModule(fragShaderCode);

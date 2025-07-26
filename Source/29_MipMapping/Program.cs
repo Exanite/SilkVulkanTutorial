@@ -94,8 +94,8 @@ unsafe class HelloTriangleApplication
     const int WIDTH = 800;
     const int HEIGHT = 600;
 
-    const string MODEL_PATH = @"Assets\viking_room.obj";
-    const string TEXTURE_PATH = @"Assets\viking_room.png";
+    const string MODEL_PATH = @"Assets/viking_room.obj";
+    const string TEXTURE_PATH = @"Assets/viking_room.png";
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -739,8 +739,8 @@ unsafe class HelloTriangleApplication
 
     private void CreateGraphicsPipeline()
     {
-        var vertShaderCode = System.IO.File.ReadAllBytes("shaders/vert.spv");
-        var fragShaderCode = System.IO.File.ReadAllBytes("shaders/frag.spv");
+        var vertShaderCode = System.IO.File.ReadAllBytes("Shaders/vert.spv");
+        var fragShaderCode = System.IO.File.ReadAllBytes("Shaders/frag.spv");
 
         var vertShaderModule = CreateShaderModule(vertShaderCode);
         var fragShaderModule = CreateShaderModule(fragShaderCode);
