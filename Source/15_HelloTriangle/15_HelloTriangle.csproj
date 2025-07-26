@@ -10,7 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Silk.NET" />
-	  <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" />
+    <PackageReference Include="Silk.NET.Vulkan" />
+    <PackageReference Include="Silk.NET.SDL" />
   </ItemGroup>
 
 	<ItemGroup>

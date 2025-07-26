@@ -3,9 +3,10 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Silk.NET" Version="2.22.0" />
-    <PackageVersion Include="Silk.NET.Assimp" Version="2.22.0" />
-    <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.22.0" />
+    <PackageVersion Include="Silk.NET" Version="[3.0.0-pr2457.1020]" />
+    <PackageVersion Include="Silk.NET.Vulkan" Version="[3.0.0-pr2457.1020]" />
+    <PackageVersion Include="Silk.NET.SDL" Version="[3.0.0-pr2457.1020]" />
+    <PackageVersion Include="Silk.NET.SDL.Native" Version="[3.0.0-pr2457.1020]" />
     <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.5" />
   </ItemGroup>
 </Project>
