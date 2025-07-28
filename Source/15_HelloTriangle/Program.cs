@@ -73,7 +73,7 @@ class NativeContext : INativeContext
                     {
                         var lib = LoaderInterface.LoadLibrary(GetLibraryName(), callingAsm);
                         if (_libCache.TryUpdate(
-                                args.Item1,
+                                args.Item2,
                                 lib,
                                 0
                             ))
