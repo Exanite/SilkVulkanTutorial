@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.Core;
@@ -32,7 +33,14 @@ struct SwapChainSupportDetails
 class VulkanLoader : INativeContext
 {
     public Vk Vk { get; set; } = null!;
-    private IVk Ivk => Vk;
+
+    // TODO: Move this to a static ctor in the Vk class
+    public VulkanLoader()
+    {
+        LoaderInterface.RegisterHook(Assembly.GetExecutingAssembly());
+        LoaderInterface.RegisterAlternativeName("vulkan", "vulkan-1");
+        LoaderInterface.RegisterAlternativeName("vulkan", "MoltenVK");
+    }
 
     public unsafe void* LoadFunction(string functionName, string libraryNameHint)
     {
