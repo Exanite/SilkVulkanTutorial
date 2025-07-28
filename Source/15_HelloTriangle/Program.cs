@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.Core;
@@ -29,27 +31,83 @@ struct SwapChainSupportDetails
     public PresentModeKHR[] PresentModes;
 }
 
-class VulkanLoader : INativeContext
+class NativeContext : INativeContext
 {
+    private readonly ConcurrentDictionary<string, nint> _libCache = new();
+    private readonly ConcurrentDictionary<(string, string), nint> _fnCache = new();
+
     public Vk Vk { get; set; } = null!;
     private IVk Ivk => Vk;
 
     public unsafe void* LoadFunction(string functionName, string libraryNameHint)
     {
-        void* ptr = Vk.DllImport.GetDeviceProcAddr(Vk.CurrentDevice.GetValueOrDefault(), functionName);
+        if (functionName is "vkGetDeviceProcAddr" or "vkGetInstanceProcAddr")
+        {
+            return (delegate* unmanaged<DeviceHandle, sbyte*, void*>)LoadNativeLibraryFunction(libraryNameHint, functionName);
+        }
+
+        void* ptr = Ivk.GetDeviceProcAddr(Vk.CurrentDevice.GetValueOrDefault(), functionName);
         if (ptr != null)
         {
             return ptr;
         }
 
-        ptr = Vk.DllImport.GetInstanceProcAddr(Vk.CurrentInstance.GetValueOrDefault(), functionName);
+        ptr = Ivk.GetInstanceProcAddr(Vk.CurrentInstance.GetValueOrDefault(), functionName);
         return ptr;
     }
 
-    public void Dispose()
+    private unsafe void* LoadNativeLibraryFunction(string functionName, string libraryNameHint)
     {
+        var callingAsm = Assembly.GetCallingAssembly();
+        return (void*)
+            _fnCache.GetOrAdd(
+                (functionName, libraryNameHint),
+                args =>
+                {
+                    var libHandle = _libCache.GetOrAdd(
+                        args.Item1,
+                        lib => LoaderInterface.LoadLibrary(lib, callingAsm)
+                    );
 
+                    if (libHandle == 0)
+                    {
+                        var lib = LoaderInterface.LoadLibrary(GetLibraryName(), callingAsm);
+                        if (_libCache.TryUpdate(
+                                args.Item2,
+                                lib,
+                                0
+                            ))
+                        {
+                            libHandle = lib;
+                        }
+                    }
+
+                    if (libHandle == 0)
+                    {
+                        return 0;
+                    }
+
+                    if (NativeLibrary.TryGetExport(libHandle, args.Item2, out var fnAddr))
+                    {
+                        return fnAddr;
+                    }
+
+                    return 0;
+                }
+            );
     }
+
+    private string GetLibraryName()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return "vulkan-1.dll";
+        }
+
+        return "libvulkan.so.1";
+    }
+
+    public void Dispose() {}
 }
 
 unsafe class HelloTriangleApplication
@@ -109,7 +167,7 @@ unsafe class HelloTriangleApplication
 
     public static IVk Create()
     {
-        var context = new VulkanLoader();
+        var context = new NativeContext();
         var vk = new Vk(context);
 
         context.Vk = vk;
