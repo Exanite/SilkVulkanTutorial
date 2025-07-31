@@ -1,9 +1,7 @@
 ﻿using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.Core;
-using Silk.NET.Core.Loader;
 using Silk.NET.Maths;
 using Silk.NET.SDL;
 using Silk.NET.Vulkan;
@@ -28,36 +26,6 @@ struct SwapChainSupportDetails
     public SurfaceCapabilitiesKHR Capabilities;
     public SurfaceFormatKHR[] Formats;
     public PresentModeKHR[] PresentModes;
-}
-
-class VulkanLoader : INativeContext
-{
-    public Vk Vk { get; set; } = null!;
-
-    // TODO: Move this to a static ctor in the Vk class
-    public VulkanLoader()
-    {
-        LoaderInterface.RegisterHook(Assembly.GetExecutingAssembly());
-        LoaderInterface.RegisterAlternativeName("vulkan", "vulkan-1");
-        LoaderInterface.RegisterAlternativeName("vulkan", "MoltenVK");
-    }
-
-    public unsafe void* LoadFunction(string functionName, string libraryNameHint)
-    {
-        void* ptr = Vk.DllImport.GetDeviceProcAddr(Vk.CurrentDevice.GetValueOrDefault(), functionName);
-        if (ptr != null)
-        {
-            return ptr;
-        }
-
-        ptr = Vk.DllImport.GetInstanceProcAddr(Vk.CurrentInstance.GetValueOrDefault(), functionName);
-        return ptr;
-    }
-
-    public void Dispose()
-    {
-
-    }
 }
 
 unsafe class HelloTriangleApplication
@@ -114,16 +82,6 @@ unsafe class HelloTriangleApplication
     private FenceHandle[]? inFlightFences;
     private FenceHandle[]? imagesInFlight;
     private int currentFrame = 0;
-
-    public static IVk Create()
-    {
-        var context = new VulkanLoader();
-        var vk = new Vk(context);
-
-        context.Vk = vk;
-
-        return vk;
-    }
 
     public void Run()
     {
