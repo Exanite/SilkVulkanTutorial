@@ -82,7 +82,7 @@ unsafe class HelloTriangleApplication
     private WindowHandle window;
 
     private ISdl sdl = Sdl.Create();
-    private IVk vk = Create();
+    private IVk vk = Vk.Create();
 
     private InstanceHandle instance;
 
