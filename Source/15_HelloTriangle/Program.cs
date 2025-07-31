@@ -1101,7 +1101,7 @@ unsafe class HelloTriangleApplication
         return validationLayers.All(availableLayerNames.Contains);
     }
 
-    private MaybeBool<uint> DebugCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity, uint messageTypes, DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    private MaybeBool<uint> DebugCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity, DebugUtilsMessageTypeFlagsEXT messageTypes, DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
         Console.WriteLine($"validation layer:" + Marshal.PtrToStringAnsi((nint)pCallbackData->PMessage));
 
