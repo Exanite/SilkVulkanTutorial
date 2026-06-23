@@ -54,8 +54,8 @@ unsafe class HelloTriangleApplication
 
     private InstanceHandle instance;
 
-    private DebugUtilsMessengerEXTHandle debugMessenger;
-    private SurfaceKHRHandle surface;
+    private DebugUtilsMessengerHandleEXT debugMessenger;
+    private SurfaceHandleKHR surface;
 
     private PhysicalDeviceHandle physicalDevice;
     private DeviceHandle device;
@@ -63,7 +63,7 @@ unsafe class HelloTriangleApplication
     private QueueHandle graphicsQueue;
     private QueueHandle presentQueue;
 
-    private SwapchainKHRHandle swapChain;
+    private SwapchainHandleKHR swapChain;
     private ImageHandle[]? swapChainImages;
     private Format swapChainImageFormat;
     private Extent2D swapChainExtent;
@@ -197,7 +197,7 @@ unsafe class HelloTriangleApplication
             ApplicationVersion = new Version32(1, 0, 0),
             PEngineName = (sbyte*)Marshal.StringToHGlobalAnsi("No Engine"),
             EngineVersion = new Version32(1, 0, 0),
-            ApiVersion = Vk.ApiVersion1X2
+            ApiVersion = Vk.ApiVersion1x2
         };
 
         InstanceCreateInfo createInfo = new()
@@ -243,13 +243,13 @@ unsafe class HelloTriangleApplication
     private void PopulateDebugMessengerCreateInfo(ref DebugUtilsMessengerCreateInfoEXT createInfo)
     {
         createInfo.SType = StructureType.DebugUtilsMessengerCreateInfoEXT;
-        createInfo.MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.VerboseBitEXT |
-                                     DebugUtilsMessageSeverityFlagsEXT.WarningBitEXT |
-                                     DebugUtilsMessageSeverityFlagsEXT.ErrorBitEXT;
-        createInfo.MessageType = DebugUtilsMessageTypeFlagsEXT.GeneralBitEXT |
-                                 DebugUtilsMessageTypeFlagsEXT.PerformanceBitEXT |
-                                 DebugUtilsMessageTypeFlagsEXT.ValidationBitEXT;
-        createInfo.PfnUserCallback = (new PFNVkDebugUtilsMessengerCallbackEXT(DebugCallback));
+        createInfo.MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.VerboseBit |
+                                     DebugUtilsMessageSeverityFlagsEXT.WarningBit |
+                                     DebugUtilsMessageSeverityFlagsEXT.ErrorBit;
+        createInfo.MessageType = DebugUtilsMessageTypeFlagsEXT.GeneralBit |
+                                 DebugUtilsMessageTypeFlagsEXT.PerformanceBit |
+                                 DebugUtilsMessageTypeFlagsEXT.ValidationBit;
+        createInfo.PfnUserCallback = (new DebugUtilsMessengerCallbackEXT(DebugCallback));
     }
 
     private void SetupDebugMessenger()
@@ -270,7 +270,7 @@ unsafe class HelloTriangleApplication
         ulong surfaceHandle = default;
         sdl.VulkanLoadLibrary(default);
         sdl.VulkanCreateSurface(window, instance.Handle, default, surfaceHandle.AsRef());
-        surface = Unsafe.BitCast<ulong, SurfaceKHRHandle>(surfaceHandle);
+        surface = Unsafe.BitCast<ulong, SurfaceHandleKHR>(surfaceHandle);
     }
 
     private void PickPhysicalDevice()
@@ -405,7 +405,7 @@ unsafe class HelloTriangleApplication
         createInfo = createInfo with
         {
             PreTransform = swapChainSupport.Capabilities.CurrentTransform,
-            CompositeAlpha = CompositeAlphaFlagsKHR.OpaqueBitKHR,
+            CompositeAlpha = CompositeAlphaFlagsKHR.OpaqueBit,
             PresentMode = presentMode,
             Clipped = true,
 
@@ -910,7 +910,7 @@ unsafe class HelloTriangleApplication
     {
         foreach (var availableFormat in availableFormats)
         {
-            if (availableFormat.Format == Format.B8G8R8A8Srgb && availableFormat.ColorSpace == ColorSpaceKHR.SrgbNonlinearKHR)
+            if (availableFormat.Format == Format.B8G8R8A8Srgb && availableFormat.ColorSpace == ColorSpaceKHR.SrgbNonlinear)
             {
                 return availableFormat;
             }
@@ -923,13 +923,13 @@ unsafe class HelloTriangleApplication
     {
         foreach (var availablePresentMode in availablePresentModes)
         {
-            if (availablePresentMode == PresentModeKHR.MailboxKHR)
+            if (availablePresentMode == PresentModeKHR.Mailbox)
             {
                 return availablePresentMode;
             }
         }
 
-        return PresentModeKHR.FifoKHR;
+        return PresentModeKHR.Fifo;
     }
 
     private Extent2D ChooseSwapExtent(SurfaceCapabilitiesKHR capabilities)
@@ -1053,10 +1053,11 @@ unsafe class HelloTriangleApplication
                 indices.GraphicsFamily = i;
             }
 
-            MaybeBool<uint> presentSupport = default;
+            // TODO: This should be typed as MaybeBool<uint>
+            uint presentSupport = default;
             vk.GetPhysicalDeviceSurfaceSupportKHR(device, i, surface, presentSupport.AsRef());
 
-            if (presentSupport)
+            if ((MaybeBool<uint>)presentSupport)
             {
                 indices.PresentFamily = i;
             }
@@ -1101,7 +1102,8 @@ unsafe class HelloTriangleApplication
         return validationLayers.All(availableLayerNames.Contains);
     }
 
-    private MaybeBool<uint> DebugCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity, DebugUtilsMessageTypeFlagsEXT messageTypes, DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    // TODO: This should be MaybeBool as well...
+    private uint DebugCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity, DebugUtilsMessageTypeFlagsEXT messageTypes, DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
         Console.WriteLine($"validation layer:" + Marshal.PtrToStringAnsi((nint)pCallbackData->PMessage));
 
